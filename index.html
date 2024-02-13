@@ -1,4 +1,213 @@
-<script>
-  window.location.href = 'https://tatuarvela.com';
-</script>
-<link rel="canonical" href="https://tatuarvela.com"/>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tatu Arvela – GitHub Pages</title>
+    <style>
+      table {
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: 18px;
+      }
+
+      th:nth-of-type(1) {
+        width: 20px;
+      }
+
+      th {
+        text-align: left;
+        color: blue;
+        font-weight: bold;
+        text-decoration: underline;
+        padding: 16px 4px;
+        vertical-align: baseline;
+        &:hover {
+          cursor: pointer;
+        }
+        &[data-sort-state='asc']:after {
+          content: ' ↑';
+          color: black;
+        }
+        &[data-sort-state='desc']:after {
+          content: ' ↓';
+          color: black;
+        }
+      }
+
+      tbody {
+        border-top: 2px inset lightgray;
+        border-bottom: 2px inset lightgray;
+      }
+
+      td {
+        padding: 8px 4px;
+      }
+
+      tr:nth-child(1)>td {
+        padding-top: 16px;
+      }
+
+      tr:nth-last-child(1)>td {
+        padding-bottom: 16px;
+      }
+
+      .align-right {
+        text-align: right;
+      }
+
+      footer {
+        font-style: italic;
+        font-size: 18px;
+      }
+    </style>
+    <script>
+      const pagesIcon = `<svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-browser"><path d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25ZM14.5 6h-13v7.25c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25Zm-6-3.5v2h6V2.75a.25.25 0 0 0-.25-.25ZM5 2.5v2h2v-2Zm-3.25 0a.25.25 0 0 0-.25.25V4.5h2v-2Z"></path></svg>`
+
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("https://api.github.com/users/TatuArvela/repos", { cache: "force-cache" })
+          .then((response) => response.json())
+          .then((data) => {
+            const reposWithPages = data
+              .filter((repo) => repo.name !== 'tatuarvela.github.io')
+              .filter((repo) => repo.has_pages);
+            const tbody = document.querySelector("table tbody");
+            reposWithPages.forEach((repo, index) => {
+              const row = document.createElement("tr");
+
+              const blankCell = document.createElement("td");
+              blankCell.innerHTML = pagesIcon;
+              row.appendChild(blankCell);
+
+              const nameCell = document.createElement("td");
+              const nameLink = document.createElement("a");
+              nameLink.href = `https://${repo.owner.login}.github.io/${repo.name}`;
+              nameLink.textContent = repo.name;
+              nameCell.appendChild(nameLink);
+              row.appendChild(nameCell);
+
+              const modifiedCell = document.createElement("td");
+              modifiedCell.setAttribute("data-value", repo.updated_at);
+              modifiedCell.textContent = formatDate(repo.updated_at);
+              row.appendChild(modifiedCell);
+
+              const sizeCell = document.createElement("td");
+              sizeCell.className = 'align-right';
+              sizeCell.textContent = `${repo.size}`;
+              row.appendChild(sizeCell);
+
+              const descriptionCell = document.createElement("td");
+              descriptionCell.textContent = repo.description || "–";
+              row.appendChild(descriptionCell);
+
+              row.setAttribute("data-original-index", index);
+              tbody.appendChild(row);
+            });
+
+            makeSortable(document.querySelector("table"));
+          })
+          .catch((error) =>
+            console.error("Error fetching repository data:", error)
+          );
+      });
+
+      function formatDate(dateString) {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const monthIndex = date.getMonth();
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        const minutes = ("0" + date.getMinutes()).slice(-2);
+
+        return `${day}-${months[monthIndex]}-${year} ${hours}:${minutes}`;
+      }
+
+      function makeSortable(table) {
+        const headers = table.querySelectorAll("th");
+        headers.forEach((header, index) => {
+          if (index > 0) {
+            const type = header.getAttribute("data-sort-type") || "string";
+            header.addEventListener("click", () => {
+              const currentState = header.getAttribute('data-sort-state') || 'none';
+
+              headers.forEach(h => {
+                h.removeAttribute('data-sort-state');
+              });
+
+              let newState;
+              switch (currentState) {
+                case 'none':
+                  newState = 'asc';
+                  break;
+                case 'asc':
+                  newState = 'desc';
+                  break;
+                case 'desc':
+                  newState = 'none';
+                  break;
+              }
+
+              if (newState !== 'none') {
+                header.setAttribute('data-sort-state', newState);
+              }
+
+              sortTableByColumn(table, index, type, newState);
+            });
+          }
+        });
+      }
+
+      function sortTableByColumn(table, columnIndex, type, newState) {
+        const tbody = table.tbody || table.getElementsByTagName("tbody")[0];
+        const rows = Array.from(tbody.rows);
+
+        if (newState === 'none') {
+          rows.sort((rowA, rowB) => {
+            return rowA.getAttribute('data-original-index') - rowB.getAttribute('data-original-index');
+          });
+        } else {
+          const isAscending = newState === 'asc';
+          rows.sort((rowA, rowB) => {
+            const cellA =
+                rowA.cells[columnIndex].getAttribute("data-value") ||
+                rowA.cells[columnIndex].textContent;
+            const cellB =
+                rowB.cells[columnIndex].getAttribute("data-value") ||
+                rowB.cells[columnIndex].textContent;
+
+            switch (type) {
+              case "number":
+                return (
+                  (isAscending ? 1 : -1) * (parseFloat(cellA) - parseFloat(cellB))
+                );
+              case "string":
+              default:
+                return (isAscending ? 1 : -1) * cellA.localeCompare(cellB);
+            }
+          });
+        }
+
+        rows.forEach((row) => tbody.appendChild(row));
+      }
+    </script>
+  </head>
+  <body>
+    <div>
+      <h1>Index of /</h1>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Name</tthd>
+            <th>Last modified</th>
+            <th data-sort-type="number" class="align-right">Size</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody id="links"></tbody>
+      </table>
+      <footer>GitHub Pages at tatuarvela.github.io</footer>
+    </div>
+  </body>
+</html>

@@ -1,3 +1,3 @@
 # tatuarvela.github.io
 
-Redirect to main domain
+Index for my GitHub Pages sites
